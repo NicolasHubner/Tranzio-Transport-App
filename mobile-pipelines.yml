@@ -1,0 +1,50 @@
+trigger: none
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  nodeVersion: '18.15.0'
+  envFile: 'API_URL=https://cfs-orbital-uat.globaldyne.com.br/'
+  envFileContent: ''
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '$(nodeVersion)'
+      checkLatest: false
+    displayName: 'Install Node.js'
+
+  - script: |
+      npm install -g yarn
+    displayName: 'Install Yarn'
+
+  - powershell: |
+      $envFileContent = "$(envFile)"
+      Write-Host "##vso[task.setvariable variable=envFileContent]$envFileContent"
+    displayName: 'Set envFileContent'
+
+  - script: |
+      echo "$(envFileContent)" > $(System.DefaultWorkingDirectory)/.env
+    displayName: 'Create .env file'
+
+  - script: |
+      cd $(System.DefaultWorkingDirectory)  # Entrar no diretório do projeto
+      yarn install --network-timeout 1000000
+      yarn run build:release-apk  # Executar o comando "build:release-apk"
+    displayName: 'yarn install and build'
+
+  - task: ArchiveFiles@2
+    inputs:
+      rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+      includeRootFolder: false
+      archiveType: 'zip'
+      archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+      replaceExistingArchive: true
+    displayName: 'Archive files'
+
+  - task: PublishPipelineArtifact@1
+    inputs:
+      artifactName: 'drop'
+      targetPath: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+    displayName: 'Publish artifact'

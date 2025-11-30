@@ -1,0 +1,47 @@
+import dayjs from "dayjs";
+import { Text } from "react-native";
+import { useCurrentTime } from "../../hooks/useCurrentTime";
+import { formatSeconds } from "../../utils/formatSeconds";
+import { styles } from "./style";
+
+interface TimerProps {
+  sta: string | undefined;
+  eta: string | undefined;
+  std: string | undefined;
+  etd: string | undefined;
+  actionType: string | undefined;
+}
+
+export const Timer: React.FC<TimerProps> = ({
+  sta,
+  eta,
+  etd,
+  std,
+  actionType,
+}) => {
+  const { now } = useCurrentTime();
+
+  const timeToUse = actionType === "Arrival" ? eta ?? sta : etd ?? std;
+
+  const [hours, minutes, seconds] = timeToUse!.split(":").map(Number);
+
+  const targetDate = dayjs()
+    .set("hours", hours)
+    .set("minutes", minutes)
+    .set("seconds", seconds);
+
+  const diff = dayjs(targetDate).diff(now, "seconds");
+
+  return (
+    <Text
+      style={{
+        ...styles.text,
+        ...styles.title,
+        fontSize: 48,
+      }}
+    >
+      {diff < 0 && "Atrasado\n"}
+      {formatSeconds(Math.abs(diff))}
+    </Text>
+  );
+};
